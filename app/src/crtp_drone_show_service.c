@@ -40,7 +40,6 @@
 #include "pm.h"
 #include "preflight.h"
 #include "supervisor.h"
-#include "system.h"
 
 #define DEBUG_MODULE "SHOW"
 #include "debug.h"
@@ -180,13 +179,19 @@ static void droneShowSrvCrtpCB(CRTPPacket* pk) {
 
 static void handleArmOrDisarmCommandPacket(CRTPPacket* pk) {
   struct data_arm_or_disarm data = *((struct data_arm_or_disarm*)(pk->data + 1));
-  
+
+  /* there is now a dedicated CRTP packet for arming and disarming but we need
+   * to keep this for backward compatibility purposes */
+
+  /* TODO(ntamas): it would be great to delegate this to the existing arm/disarm
+   * command handler */
+
   /* put the response in the packet and trim it */
   if (pk->size >= sizeof(struct data_arm_or_disarm) + 1) {
     bool shouldBeArmed = data.arm & 1;
     bool forced = data.arm & 2;
 
-    systemSetArmed(shouldBeArmed);
+    supervisorRequestArming(shouldBeArmed);
     if (!shouldBeArmed && forced) {
       armingForceDisarm();
     }
@@ -276,7 +281,7 @@ static void updatePacketWithStatusInformation(CRTPPacket* pk) {
     /* is the drone show in testing mode? */
     (droneShowIsInTestingMode() ? (1 << 4) : 0) |
     /* is the drone _disarmed_? (backwards compatibility) */
-    (systemIsArmed() ? 0 : (1 << 5)) |
+    (!supervisorIsArmed() ? (1 << 5) : 0) |
     /* is the fence breached? */
     (fenceIsBreached() ? (1 << 6) : 0)
   );

@@ -23,11 +23,13 @@
  * Academic citation would be appreciated.
  *
  * BIBTEX ENTRIES:
+ * \verbatim
       @ARTICLE{BrescianiniNonlinearController2013,
                title={Nonlinear quadrocopter attitude control},
                author={Brescianini, Dario and Hehn, Markus and D'Andrea, Raffaello},
                year={2013},
                publisher={ETH Zurich}}
+ * \endverbatim
  *
  * ============================================================================
  */
@@ -38,6 +40,7 @@
 #include "num.h"
 #include "math3d.h"
 #include "physicalConstants.h"
+#include "platform_defaults.h"
 
 static struct mat33 CRAZYFLIE_INERTIA =
     {{{16.6e-6f, 0.83e-6f, 0.72e-6f},
@@ -97,7 +100,7 @@ void controllerBrescianini(control_t *control,
                                  const setpoint_t *setpoint,
                                  const sensorData_t *sensors,
                                  const state_t *state,
-                                 const uint32_t tick) {
+                                 const stabilizerStep_t stabilizerStep) {
 
   static float control_omega[3];
   static struct vec control_torque;
@@ -109,7 +112,7 @@ void controllerBrescianini(control_t *control,
   omega[1] = radians(sensors->gyro.y);
   omega[2] = radians(sensors->gyro.z);
 
-  if (RATE_DO_EXECUTE(UPDATE_RATE, tick)) {
+  if (RATE_DO_EXECUTE(UPDATE_RATE, stabilizerStep)) {
     // desired accelerations
     struct vec accDes = vzero();
     // desired thrust

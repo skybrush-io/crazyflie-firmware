@@ -35,6 +35,9 @@
  * All have a timestamp to be set when the data is calculated.
  */
 
+// stabilizerStep_t represents the number of times the stabilizer loop has run (at 1000 Hz)
+typedef uint32_t stabilizerStep_t;
+
 /** Attitude in euler angle form */
 typedef struct attitude_s {
   uint32_t timestamp;  // Timestamp when the data was computed
@@ -62,6 +65,7 @@ typedef struct vec3_s vector_t;
 typedef struct vec3_s point_t;
 typedef struct vec3_s velocity_t;
 typedef struct vec3_s acc_t;
+typedef struct vec3_s jerk_t;
 
 /* Orientation as a quaternion */
 typedef struct quaternion_s {
@@ -254,6 +258,7 @@ typedef struct setpoint_s {
   point_t position;         // m
   velocity_t velocity;      // m/s
   acc_t acceleration;       // m/s^2
+  jerk_t jerk;              // m/s^3
   bool velocity_body;       // true if velocity is given in body frame; false if velocity is given in world frame
 
   struct {
@@ -353,7 +358,7 @@ typedef struct
 } barometerMeasurement_t;
 
 
-// Frequencies to bo used with the RATE_DO_EXECUTE_HZ macro. Do NOT use an arbitrary number.
+// Frequencies to be used with the RATE_DO_EXECUTE_HZ macro. Do NOT use an arbitrary number.
 #define RATE_1000_HZ 1000
 #define RATE_500_HZ 500
 #define RATE_250_HZ 250
@@ -365,6 +370,7 @@ typedef struct
 #define ATTITUDE_RATE RATE_500_HZ
 #define POSITION_RATE RATE_100_HZ
 #define RATE_HL_COMMANDER RATE_100_HZ
+#define RATE_SUPERVISOR RATE_25_HZ
 
 #define RATE_DO_EXECUTE(RATE_HZ, TICK) ((TICK % (RATE_MAIN_LOOP / RATE_HZ)) == 0)
 

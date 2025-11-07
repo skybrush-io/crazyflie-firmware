@@ -50,7 +50,7 @@ typedef struct {
   void (*init)(void);
   void (*deinit)(void);
   bool (*test)(void);
-  void (*update)(state_t *state, const uint32_t tick);
+  void (*update)(state_t *state, const stabilizerStep_t stabilizerStep);
   const char* name;
 } EstimatorFcns;
 
@@ -118,7 +118,7 @@ void stateEstimatorSwitchTo(StateEstimatorType estimator) {
 
   #if defined(CONFIG_ESTIMATOR_KALMAN)
     #define ESTIMATOR StateEstimatorTypeKalman
-  #elif defined(CONFIG_UKF_KALMAN)
+  #elif defined(CONFIG_ESTIMATOR_UKF)
     #define ESTIMATOR StateEstimatorTypeUkf
   #elif defined(CONFIG_ESTIMATOR_COMPLEMENTARY)
     #define ESTIMATOR StateEstimatorTypeComplementary
@@ -160,7 +160,7 @@ bool stateEstimatorTest(void) {
   return estimatorFunctions[currentEstimator].test();
 }
 
-void stateEstimator(state_t *state, const uint32_t tick) {
+void stateEstimator(state_t *state, const stabilizerStep_t tick) {
   estimatorFunctions[currentEstimator].update(state, tick);
 }
 

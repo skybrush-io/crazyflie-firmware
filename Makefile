@@ -38,6 +38,7 @@ PROCESSOR = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 LINKER_DIR = $(srctree)/tools/make/F405/linker
 
 LDFLAGS += --specs=nosys.specs --specs=nano.specs $(PROCESSOR) -nostdlib
+image_LDFLAGS += -z noexecstack
 image_LDFLAGS += -Wl,-Map=$(PROG).map,--cref,--gc-sections,--undefined=uxTopUsedPriority
 image_LDFLAGS += -L$(srctree)/tools/make/F405/linker
 image_LDFLAGS += -T $(LINKER_DIR)/FLASH_CLOAD.ld
@@ -51,7 +52,7 @@ INCLUDES += -I$(srctree)/src/deck/interface -I$(srctree)/src/deck/drivers/interf
 INCLUDES += -I$(srctree)/src/drivers/interface -I$(srctree)/src/drivers/bosch/interface
 INCLUDES += -I$(srctree)/src/drivers/esp32/interface
 INCLUDES += -I$(srctree)/src/hal/interface
-INCLUDES += -I$(srctree)/src/modules/interface -I$(srctree)/src/modules/interface/kalman_core -I$(srctree)/src/modules/interface/lighthouse
+INCLUDES += -I$(srctree)/src/modules/interface -I$(srctree)/src/modules/interface/kalman_core -I$(srctree)/src/modules/interface/lighthouse  -I$(srctree)/src/modules/interface/outlierfilter
 INCLUDES += -I$(srctree)/src/modules/interface/cpx -I$(srctree)/src/modules/interface/p2pDTR -I$(srctree)/src/modules/interface/controller  -I$(srctree)/src/modules/interface/estimator
 INCLUDES += -I$(srctree)/src/utils/interface -I$(srctree)/src/utils/interface/kve -I$(srctree)/src/utils/interface/lighthouse -I$(srctree)/src/utils/interface/tdoa
 INCLUDES += -I$(LIB)/FatFS
@@ -95,6 +96,10 @@ unquoted = $(patsubst "%",%,$(CONFIG_DECK_LOCO_2D_POSITION_HEIGHT))
 ARCH_CFLAGS += -DDECK_LOCO_2D_POSITION_HEIGHT=$(unquoted)
 endif
 
+ifeq ($(CONFIG_PLATFORM_CF21BL), y)
+PLATFORM = cf21bl
+endif
+
 ifeq ($(CONFIG_PLATFORM_TAG),y)
 PLATFORM = tag
 endif
@@ -120,16 +125,9 @@ endif
 _all:
 
 all: $(PROG).hex $(PROG).bin
-	@echo "Build for the $(PLATFORM)!"
+	@echo "Build for the $(PLATFORM) platform!"
 	@$(PYTHON) $(srctree)/tools/make/versionTemplate.py --crazyflie-base $(srctree) --print-version
 	@$(PYTHON) $(srctree)/tools/make/size.py $(SIZE) $(PROG).elf $(MEM_SIZE_FLASH_K) $(MEM_SIZE_RAM_K) $(MEM_SIZE_CCM_K)
-
-	#
-	# Create symlinks to the ouput files in the build directory
-	#
-	for f in $$(ls $(PROG).*); do \
-		ln -sf $(KBUILD_OUTPUT)/$$f $(srctree)/$$(basename $$f); \
-	done
 
 include tools/make/targets.mk
 
@@ -217,8 +215,9 @@ MOD_INC = src/modules/interface
 MOD_SRC = src/modules/src
 
 bindings_python build/cffirmware.py: bindings/setup.py $(MOD_SRC)/*.c
-	swig -python -I$(MOD_INC) -Isrc/hal/interface -Isrc/utils/interface -Isrc/modules/interface/controller -o build/cffirmware_wrap.c bindings/cffirmware.i
+	swig -python -I$(MOD_INC) -Isrc/hal/interface -Isrc/utils/interface -I$(MOD_INC)/controller -Isrc/platform/interface -I$(MOD_INC)/outlierfilter -I$(MOD_INC)/kalman_core -o build/cffirmware_wrap.c bindings/cffirmware.i
 	$(PYTHON) bindings/setup.py build_ext --inplace
+	cp cffirmware_setup.py build/setup.py
 
 test_python: build/cffirmware.py
 	PYTHONPATH=build $(PYTHON) -m pytest test_python

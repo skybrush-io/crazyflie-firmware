@@ -40,6 +40,9 @@
 #include "platform.h"
 #include "app_channel.h"
 #include "static_mem.h"
+#include "supervisor.h"
+#include "ledseq.h"
+#include "worker.h"
 
 static bool isInit=false;
 STATIC_MEM_TASK_ALLOC_STACK_NO_DMA_CCM_SAFE(platformSrvTask, PLATFORM_SRV_TASK_STACKSIZE);
@@ -51,7 +54,10 @@ typedef enum {
 } Channel;
 
 typedef enum {
-  setContinousWave   = 0x00,
+  setContinuousWave    = 0x00,
+  armSystem            = 0x01,
+  recoverSystem        = 0x02,
+  userNotification     = 0x03,
 } PlatformCommand;
 
 typedef enum {
@@ -61,8 +67,9 @@ typedef enum {
 } VersionCommand;
 
 static void platformSrvTask(void*);
-static void platformCommandProcess(uint8_t command, uint8_t *data);
+static void platformCommandProcess(CRTPPacket *p);
 static void versionCommandProcess(CRTPPacket *p);
+static void runUserNotification(void* arg);
 
 void platformserviceInit(void)
 {
@@ -94,7 +101,7 @@ static void platformSrvTask(void* prm)
     switch (p.channel)
     {
       case platformCommand:
-        platformCommandProcess(p.data[0], &p.data[1]);
+        platformCommandProcess(&p);
         crtpSendPacketBlock(&p);
         break;
       case versionCommand:
@@ -109,17 +116,48 @@ static void platformSrvTask(void* prm)
   }
 }
 
-static void platformCommandProcess(uint8_t command, uint8_t *data)
+static void platformCommandProcess(CRTPPacket *p)
 {
-  static SyslinkPacket slp;
+  uint8_t command = p->data[0];
+  uint8_t *data = &p->data[1];
 
   switch (command) {
-    case setContinousWave:
+    case setContinuousWave:
+    {
+      static SyslinkPacket slp;
       slp.type = SYSLINK_RADIO_CONTWAVE;
       slp.length = 1;
       slp.data[0] = data[0];
       syslinkSendPacket(&slp);
       break;
+    }
+    case armSystem:
+    {
+      const bool doArm = data[0];
+      const bool success = supervisorRequestArming(doArm);
+      data[0] = success;
+      data[1] = supervisorIsArmed();
+      p->size = 2;
+      break;
+    }
+    case recoverSystem:
+    {
+      const bool success = supervisorRequestCrashRecovery(true);
+      data[0] = success;
+      data[1] = !supervisorIsCrashed();
+      p->size = 2;
+      break;
+    }
+    case userNotification:
+    {
+      // 0 - fail
+      // 1 - success
+      const uint8_t notificationType = data[0];
+
+      workerSchedule(runUserNotification, (void*)(uint32_t)notificationType);
+      p->size = 0;
+      break;
+    }
     default:
       break;
   }
@@ -143,7 +181,7 @@ static void versionCommandProcess(CRTPPacket *p)
 {
   switch (p->data[0]) {
     case getProtocolVersion:
-      *(int*)&p->data[1] = PROTOCOL_VERSION;
+      *(int*)&p->data[1] = CRTP_PROTOCOL_VERSION;
       p->size = 5;
       crtpSendPacketBlock(p);
       break;
@@ -162,5 +200,15 @@ static void versionCommandProcess(CRTPPacket *p)
       break;
     default:
       break;
+  }
+}
+
+static void runUserNotification(void* arg)
+{
+  uint8_t notificationType = (uint32_t)arg;
+  if (notificationType) {
+    ledseqRun(&seq_user_notification_success);
+  } else {
+    ledseqRun(&seq_user_notification_fail);
   }
 }

@@ -84,9 +84,8 @@ void commanderSetSetpoint(setpoint_t *setpoint, int priority)
     xQueueOverwrite(setpointQueue, setpoint);
     xQueueOverwrite(priorityQueue, &priority);
     if (priority > COMMANDER_PRIORITY_HIGHLEVEL) {
-      // Disable the high-level planner so it will forget its current state and
-      // start over if we switch from low-level to high-level in the future.
-      crtpCommanderHighLevelDisable();
+      // Stop the high-level planner so it will forget its current state
+      crtpCommanderHighLevelStop();
     }
   }
 }
@@ -102,23 +101,7 @@ void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)
 {
   xQueuePeek(setpointQueue, setpoint, 0);
   lastUpdate = setpoint->timestamp;
-  uint32_t currentTime = xTaskGetTickCount();
 
-  if ((currentTime - setpoint->timestamp) > COMMANDER_WDT_TIMEOUT_SHUTDOWN) {
-    memcpy(setpoint, &nullSetpoint, sizeof(nullSetpoint));
-  } else if ((currentTime - setpoint->timestamp) > COMMANDER_WDT_TIMEOUT_STABILIZE) {
-    xQueueOverwrite(priorityQueue, &priorityDisable);
-    // Leveling ...
-    setpoint->mode.x = modeDisable;
-    setpoint->mode.y = modeDisable;
-    setpoint->mode.roll = modeAbs;
-    setpoint->mode.pitch = modeAbs;
-    setpoint->mode.yaw = modeVelocity;
-    setpoint->attitude.roll = 0;
-    setpoint->attitude.pitch = 0;
-    setpoint->attitudeRate.yaw = 0;
-    // Keep Z as it is
-  }
   // This copying is not strictly necessary because stabilizer.c already keeps
   // a static state_t containing the most recent state estimate. However, it is
   // not accessible by the public interface.

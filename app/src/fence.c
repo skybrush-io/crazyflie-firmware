@@ -26,13 +26,12 @@
 #include "FreeRTOS.h"   /* bool is defined there */
 #include "timers.h"
 
+#include "arming.h"
 #include "estimator_kalman.h"
 #include "fence.h"
 #include "log.h"
 #include "mem.h"
 #include "param.h"
-#include "stabilizer.h"
-#include "stabilizer_types.h"
 #include "supervisor.h"
 #include "system.h"
 #include "worker.h"
@@ -203,7 +202,7 @@ static void handleBreach() {
     case FENCE_ACTION_STOP_MOTORS:
       /* Activate emergency stop if the drone is flying */
       if (supervisorIsFlying()) {
-        stabilizerSetEmergencyStop();
+        armingBlockMotors();
       }
       break;
 

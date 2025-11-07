@@ -24,16 +24,22 @@
  * power_distribution_quadrotor.c - Crazyflie stock power distribution code
  */
 
+
 #include "power_distribution.h"
 
 #include <string.h>
+#include "debug.h"
 #include "log.h"
 #include "param.h"
 #include "num.h"
 #include "autoconf.h"
 #include "config.h"
 #include "math.h"
+#include "platform_defaults.h"
 
+#if (!defined(CONFIG_MOTORS_REQUIRE_ARMING) || (CONFIG_MOTORS_REQUIRE_ARMING == 0)) && defined(CONFIG_MOTORS_DEFAULT_IDLE_THRUST) && (CONFIG_MOTORS_DEFAULT_IDLE_THRUST > 0)
+    #error "CONFIG_MOTORS_REQUIRE_ARMING must be defined and not set to 0 if CONFIG_MOTORS_DEFAULT_IDLE_THRUST is greater than 0"
+#endif
 #ifndef CONFIG_MOTORS_DEFAULT_IDLE_THRUST
 #  define DEFAULT_IDLE_THRUST 0
 #else
@@ -41,12 +47,6 @@
 #endif
 
 static uint32_t idleThrust = DEFAULT_IDLE_THRUST;
-static float armLength = 0.046f; // m;
-static float thrustToTorque = 0.005964552f;
-
-// thrust = a * pwm^2 + b * pwm
-static float pwmToThrustA = 0.091492681f;
-static float pwmToThrustB = 0.067673604f;
 
 int powerDistributionMotorType(uint32_t id)
 {
@@ -60,6 +60,11 @@ uint16_t powerDistributionStopRatio(uint32_t id)
 
 void powerDistributionInit(void)
 {
+  #if (!defined(CONFIG_MOTORS_REQUIRE_ARMING) || (CONFIG_MOTORS_REQUIRE_ARMING == 0))
+  if(idleThrust > 0) {
+    DEBUG_PRINT("WARNING: idle thrust will be overridden with value 0. Autoarming can not be on while idle thrust is higher than 0. If you want to use idle thust please use use arming\n");
+  }
+  #endif
 }
 
 bool powerDistributionTest(void)
@@ -90,11 +95,11 @@ static void powerDistributionLegacy(const control_t *control, motors_thrust_unca
 static void powerDistributionForceTorque(const control_t *control, motors_thrust_uncapped_t* motorThrustUncapped) {
   static float motorForces[STABILIZER_NR_OF_MOTORS];
 
-  const float arm = 0.707106781f * armLength;
+  const float arm = 0.707106781f * ARM_LENGTH;
   const float rollPart = 0.25f / arm * control->torqueX;
   const float pitchPart = 0.25f / arm * control->torqueY;
   const float thrustPart = 0.25f * control->thrustSi; // N (per rotor)
-  const float yawPart = 0.25f * control->torqueZ / thrustToTorque;
+  const float yawPart = 0.25f * control->torqueZ / THRUST2TORQUE;
 
   motorForces[0] = thrustPart - rollPart - pitchPart - yawPart;
   motorForces[1] = thrustPart - rollPart + pitchPart + yawPart;
@@ -107,8 +112,7 @@ static void powerDistributionForceTorque(const control_t *control, motors_thrust
       motorForce = 0.0f;
     }
 
-    float motor_pwm = (-pwmToThrustB + sqrtf(pwmToThrustB * pwmToThrustB + 4.0f * pwmToThrustA * motorForce)) / (2.0f * pwmToThrustA);
-    motorThrustUncapped->list[motorIndex] = motor_pwm * UINT16_MAX;
+    motorThrustUncapped->list[motorIndex] = motorForce / THRUST_MAX * UINT16_MAX;
   }
 }
 
@@ -134,9 +138,10 @@ void powerDistribution(const control_t *control, motors_thrust_uncapped_t* motor
   }
 }
 
-void powerDistributionCap(const motors_thrust_uncapped_t* motorThrustBatCompUncapped, motors_thrust_pwm_t* motorPwm)
+bool powerDistributionCap(const motors_thrust_uncapped_t* motorThrustBatCompUncapped, motors_thrust_pwm_t* motorPwm)
 {
   const int32_t maxAllowedThrust = UINT16_MAX;
+  bool isCapped = false;
 
   // Find highest thrust
   int32_t highestThrustFound = 0;
@@ -153,13 +158,29 @@ void powerDistributionCap(const motors_thrust_uncapped_t* motorThrustBatCompUnca
   if (highestThrustFound > maxAllowedThrust)
   {
     reduction = highestThrustFound - maxAllowedThrust;
+    isCapped = true;
   }
 
   for (int motorIndex = 0; motorIndex < STABILIZER_NR_OF_MOTORS; motorIndex++)
   {
     int32_t thrustCappedUpper = motorThrustBatCompUncapped->list[motorIndex] - reduction;
-    motorPwm->list[motorIndex] = capMinThrust(thrustCappedUpper, idleThrust);
+    motorPwm->list[motorIndex] = capMinThrust(thrustCappedUpper, powerDistributionGetIdleThrust());
   }
+
+  return isCapped;
+}
+
+uint32_t powerDistributionGetIdleThrust()
+{
+  int32_t thrust = idleThrust;
+  #if (!defined(CONFIG_MOTORS_REQUIRE_ARMING) || (CONFIG_MOTORS_REQUIRE_ARMING == 0))
+    thrust = 0;
+  #endif
+  return thrust;
+}
+
+float powerDistributionGetMaxThrust() {
+  return STABILIZER_NR_OF_MOTORS * THRUST_MAX;
 }
 
 /**
@@ -175,20 +196,3 @@ PARAM_GROUP_START(powerDist)
  */
 PARAM_ADD_CORE(PARAM_UINT32 | PARAM_PERSISTENT, idleThrust, &idleThrust)
 PARAM_GROUP_STOP(powerDist)
-
-/**
- * System identification parameters for quad rotor
- */
-PARAM_GROUP_START(quadSysId)
-
-PARAM_ADD(PARAM_FLOAT, thrustToTorque, &thrustToTorque)
-PARAM_ADD(PARAM_FLOAT, pwmToThrustA, &pwmToThrustA)
-PARAM_ADD(PARAM_FLOAT, pwmToThrustB, &pwmToThrustB)
-
-/**
- * @brief Length of arms (m)
- *
- * The distance from the center to a motor
- */
-PARAM_ADD(PARAM_FLOAT, armLength, &armLength)
-PARAM_GROUP_STOP(quadSysId)

@@ -29,6 +29,7 @@
  *
  * Academic citation would be appreciated.
  *
+ * \verbatim
  * BIBTEX ENTRIES:
       @INPROCEEDINGS{MuellerHamerUWB2015,
       author  = {Mueller, Mark W and Hamer, Michael and D'Andrea, Raffaello},
@@ -47,6 +48,7 @@
       pages={1--7},
       year={2016},
       publisher={American Institute of Aeronautics and Astronautics}}
+ * \endverbatim
  *
  * ============================================================================
  */
@@ -58,7 +60,7 @@
 
 void estimatorKalmanInit(void);
 bool estimatorKalmanTest(void);
-void estimatorKalman(state_t *state, const uint32_t tick);
+void estimatorKalman(state_t *state, const stabilizerStep_t stabilizerStep);
 
 void estimatorKalmanTaskInit();
 bool estimatorKalmanTaskTest();

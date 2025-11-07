@@ -35,8 +35,11 @@ bool armingTest(void);
 /**
  * Arms the drone if it is set to automatic arming before takeoff and it is
  * not armed yet.
+ *
+ * Returns whether the arming was successful or if no action should have
+ * been taken.
  */
-void armAutomaticallyIfNeeded(void);
+bool armAutomaticallyIfNeeded(void);
 
 /**
  * Force-disarm the drone even if it is currently force-armed.
@@ -52,5 +55,15 @@ bool armingShouldArmAutomaticallyBeforeTakeoff(void);
  * Returns whether the drone disarms itself automatically after landing.
  */
 bool armingShouldDisarmAutomaticallyAfterLanding(void);
+
+/**
+ * Blocks the motors immediately (i.e. prevents them from spinning).
+ */
+void armingBlockMotors();
+
+/**
+ * Unblocks the motors if they are currently blocked.
+ */
+void armingUnblockMotors();
 
 #endif // __SKYBRUSH_ARMING_H__

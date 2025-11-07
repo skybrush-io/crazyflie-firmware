@@ -2,48 +2,34 @@
 
 set -e
 
-SCRIPT_ROOT="`dirname $0`"
+SCRIPT_ROOT="$(dirname $0)"
 
 if [ "x$VARIANTS" = x ]; then
-    VARIANTS=`find "${SCRIPT_ROOT}/conf" -name '*.cfg' -exec basename {} .cfg \; | grep -v common | sort`
+  VARIANTS=$(find "${SCRIPT_ROOT}/conf" -name '*.cfg' -exec basename {} .cfg \; | grep -v common | sort)
 fi
 
 cd "${SCRIPT_ROOT}"
 
 if [ "x$1" != x ]; then
-    VARIANTS="$1"
+  VARIANTS="$1"
 fi
 
 for VARIANT in $VARIANTS; do
-    BASE_BOARD=`cat conf/${VARIANT}.cfg | grep "^CONFIG_PLATFORM_" | cut -d '_' -f 3 | cut -d '=' -f 1 | tr -d ' ' | tr 'A-Z' 'a-z'`
-    if [ "x$BASE_BOARD" = x ]; then
-        echo "All variant config files must specify a CONFIG_PLATFORM_... variable"
-        exit 1
-    fi
+  python3 tools/release/resolve_includes.py \
+    -I"${SCRIPT_ROOT}/../configs" \
+    conf/${VARIANT}.cfg \
+    >app-config
 
-    BASE_CONFIG=""
-    if [ "x$BASE_BOARD" = xflapper ]; then
-        BASE_CONFIG="../configs/flapper_defconfig"
-    fi
+  BASE_BOARD=$(cat app-config | grep "^CONFIG_PLATFORM_" | head -1 | cut -d '_' -f 3 | cut -d '=' -f 1 | tr -d ' ' | tr 'A-Z' 'a-z')
+  if [ "x$BASE_BOARD" = x ]; then
+    echo "All variant config files must specify a CONFIG_PLATFORM_... variable"
+    exit 1
+  fi
 
-    rm -f app-config
-    if [ "x$BASE_CONFIG" != x ]; then
-        cp "$BASE_CONFIG" app-config
-        echo "" >>app-config
-    else
-        touch app-config
-    fi
+  make clean
+  make -j 12
+  cp build/${BASE_BOARD}.bin ${BASE_BOARD}-skybrush-${VARIANT}.bin
+  rm -f build/*.bin
 
-    cat conf/common.cfg >>app-config
-    echo "" >>app-config
-
-    cat conf/${VARIANT}.cfg >>app-config
-
-    make clean
-    make -j 12
-    cp build/${BASE_BOARD}.bin ${BASE_BOARD}-skybrush-${VARIANT}.bin
-    rm -f build/*.bin
-
-    # Don't clean up app-config here, the release script needs it
+  # Don't clean up app-config here, the release script needs it
 done
-

@@ -57,6 +57,7 @@
 /* Header includes */
 #include "bmp3_defs.h"
 
+extern uint8_t bmp3_chip_id;
 
 /*!
  *  @brief This API is the entry point.
@@ -319,4 +320,3 @@ int8_t bmp3_set_fifo_watermark(const struct bmp3_dev *dev);
 
 #endif /* BMP3_H_ */
 /** @}*/
-

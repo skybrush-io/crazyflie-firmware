@@ -257,9 +257,10 @@ void collisionAvoidanceUpdateSetpointCore(
 // Everything below this comment will only be compiled in a firware build made
 // with the standard Makefile. Everything depending on FreeRTOS, ARM, params,
 // etc. must go here.
-//
-#ifdef CRAZYFLIE_FW
+// \cond
 
+#ifdef CRAZYFLIE_FW
+// \endcond
 #include "FreeRTOS.h"
 #include "task.h"
 
@@ -305,7 +306,7 @@ static float workspace[7 * MAX_CELL_ROWS];
 static uint32_t latency = 0;
 
 void collisionAvoidanceUpdateSetpoint(
-  setpoint_t *setpoint, sensorData_t const *sensorData, state_t const *state, uint32_t tick)
+  setpoint_t *setpoint, sensorData_t const *sensorData, state_t const *state, stabilizerStep_t stabilizerStep)
 {
   if (!collisionAvoidanceEnable) {
     return;
@@ -364,7 +365,7 @@ LOG_GROUP_STOP(colAv)
  * while respecting the buffered Voronoi cell constraint. Our motion within the
  * cell also depends on a planning horizon (longer horizon will lead to more
  * conservative behavior) and a maximum speed. The commander and controller do
- * not need to know if BVCA is enabled. 
+ * not need to know if BVCA is enabled.
  *
  * BVCA does not attempt to smooth the modified setpoints, so the output may be
  * discontinuous or far from the current robot state. The controller must be
@@ -427,4 +428,6 @@ PARAM_GROUP_START(colAv)
   PARAM_ADD(PARAM_INT32, vorIters, &params.voronoiProjectionMaxIters)
 PARAM_GROUP_STOP(colAv)
 
+// \cond
 #endif  // CRAZYFLIE_FW
+// \endcond

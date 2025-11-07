@@ -46,7 +46,7 @@ Header file for high-level commander that computes smooth setpoints based on hig
 
 #include "stabilizer_types.h"
 
-#define NUM_TRAJECTORY_DEFINITIONS 10
+#define NUM_TRAJECTORY_DEFINITIONS 31
 
 typedef enum {
   CRTP_CHL_TRAJECTORY_TYPE_POLY4D = 0, // struct poly4d, see pptraj.h
@@ -59,7 +59,7 @@ void crtpCommanderHighLevelInit(void);
 
 // Retrieves the current setpoint. Returns false if the high-level commander is
 // disabled, i.e. it does not have an "opinion" on what the setpoint should be.
-bool crtpCommanderHighLevelGetSetpoint(setpoint_t* setpoint, const state_t *state, uint32_t tick);
+bool crtpCommanderHighLevelGetSetpoint(setpoint_t* setpoint, const state_t *state, stabilizerStep_t stabilizerStep);
 
 // When flying sequences of high-level commands, the high-level commander uses
 // its own history of commands to determine the initial conditions of the next
@@ -69,7 +69,7 @@ bool crtpCommanderHighLevelGetSetpoint(setpoint_t* setpoint, const state_t *stat
 // commander what initial conditions to use for trajectory planning.
 void crtpCommanderHighLevelTellState(const state_t *state);
 
-// True if we have landed or emergency-stopped.
+// True if we have landed or stopped.
 bool crtpCommanderHighLevelIsStopped();
 
 // Public API - can be used from an app
@@ -159,7 +159,33 @@ int crtpCommanderHighLevelStop();
 int crtpCommanderHighLevelDisable();
 
 /**
- * @brief Go to an absolute or relative position
+ * @brief Block/unblock the use of the high level commander.
+ *
+ * This function is called from the stabilizer loop. The purpose is to provide a way for the supervisor to block a user
+ * (or app) from starting a trajectory when the system is not in a flyable state.
+ *
+ * When entering the blocked state, the planer will stop any running trajectory and go to the stopped state. If
+ * the planner already is in the stopped or disabled state, it will remain.
+ *
+ * When blocked, functions that plans a new trajectory will be blocked.
+ *
+ * @param doBlock Enter blocked state if true, unblock if false
+ * @return zero if the command succeeded, an error code otherwise. The function
+ * should never fail, but we provide the error code nevertheless for sake of
+ * consistency with the other high-level commander functions.
+ */
+int crtpCommanderBlock(bool doBlock);
+
+/**
+ * @brief Check if the high level commander is blocked by the supervisor
+ *
+ * @return true   If the high level commander is blocked by the supervisor
+ * @return false  If not blocked
+ */
+bool crtpCommanderHighLevelIsBlocked();
+
+/**
+ * @brief Go to an absolute or relative position (will be deprecated, use crtpCommanderHighLevelGoTo2)
  *
  * @param x          x (m)
  * @param y          y (m)
@@ -172,6 +198,33 @@ int crtpCommanderHighLevelDisable();
 int crtpCommanderHighLevelGoTo(const float x, const float y, const float z, const float yaw, const float duration_s, const bool relative);
 
 /**
+ * @brief Go to an absolute or relative position
+ *
+ * @param x          x (m)
+ * @param y          y (m)
+ * @param z          z (m)
+ * @param yaw        yaw (rad)
+ * @param duration_s time it should take to reach the position (s)
+ * @param relative   true if x, y, z is relative to the current position
+ * @param linear     true if linear interpolation should be used instead of a smooth polynomial
+ * @return zero if the command succeeded, an error code otherwise
+ */
+int crtpCommanderHighLevelGoTo2(const float x, const float y, const float z, const float yaw, const float duration_s, const bool relative, const bool linear);
+
+/**
+ * @brief Follow a spiral segment (spline approximation of and arc for <= 90-degree segments)
+ *
+ * @param phi         spiral angle (rad), limited to +/- 2pi
+ * @param r0          initial radius (m), must be positive
+ * @param rf          final radius (m), must be positive
+ * @param dz          altitude gain (m), positive to climb, negative to descent
+ * @param duration_s  time it should take to reach the end of the spiral (s)
+ * @param sideways    true if crazyflie should spiral sideways instead of forward
+ * @return zero if the command succeeded, an error code otherwise
+ */
+int crtpCommanderHighLevelSpiral(const float phi, const float r0, const float rf, const float dz, const float duration_s, const bool sideways);
+
+/**
  * @brief Returns whether the trajectory with the given ID is defined
  *
  * @param trajectoryId The id of the trajectory
@@ -181,31 +234,33 @@ bool crtpCommanderHighLevelIsTrajectoryDefined(uint8_t trajectoryId);
 /**
  * @brief starts executing a specified trajectory
  *
- * @param trajectoryId id of the trajectory (previously defined by define_trajectory)
- * @param timeScale    time factor; 1.0 = original speed;
- *                                  >1.0: slower;
- *                                  <1.0: faster
- * @param relative     set to True, if trajectory should be shifted to current setpoint
- * @param reversed     set to True, if trajectory should be executed in reverse
- * @return zero if the command succeeded, an error code otherwise
+ * @param trajectoryId     id of the trajectory (previously defined by define_trajectory)
+ * @param timeScale        time factor; 1.0 = original speed;
+ *                                      >1.0: slower;
+ *                                      <1.0: faster
+ * @param relativePosition set to True, if trajectory should be shifted to current setpoint
+ * @param relativeYaw      set to True, if trajectory should be aligned to current yaw
+ * @param reversed         set to True, if trajectory should be executed in reverse
+ * @return                 zero if the command succeeded, an error code otherwise
  */
-int crtpCommanderHighLevelStartTrajectory(const uint8_t trajectoryId, const float timeScale, const bool relative, const bool reversed);
+int crtpCommanderHighLevelStartTrajectory(const uint8_t trajectoryId, const float timeScale, const bool relativePosition, const bool relativeYaw, const bool reversed);
 
 /**
  * @brief starts executing a specified trajectory with a time offset _into_ the
  * trajectory
  *
  * @param trajectoryId id of the trajectory (previously defined by define_trajectory)
- * @param offset       time offset, in seconds, relative to the start of the
+ * @param timeOffset   time offset, in seconds, relative to the start of the
  *                     trajectory, _without_ taking into account the time scale
  * @param timeScale    time factor; 1.0 = original speed;
  *                                  >1.0: slower;
  *                                  <1.0: faster
- * @param relative     set to True, if trajectory should be shifted to current setpoint
- * @param reversed     set to True, if trajectory should be executed in reverse
+ * @param relativePosition set to True, if trajectory should be shifted to current setpoint
+ * @param relativeYaw      set to True, if trajectory should be aligned to current yaw
+ * @param reversed         set to True, if trajectory should be executed in reverse
  * @return zero if the command succeeded, an error code otherwise
  */
-int crtpCommanderHighLevelStartTrajectoryWithOffset(const uint8_t trajectoryId, const float offset, const float timeScale, const bool relative, const bool reversed);
+int crtpCommanderHighLevelStartTrajectoryWithOffset(const uint8_t trajectoryId, const float timeOffset, const float timeScale, const bool relativePosition, const bool relativeYaw, const bool reversed);
 
 /**
  * @brief Define a trajectory that has previously been uploaded to memory.
@@ -231,7 +286,7 @@ uint32_t crtpCommanderHighLevelTrajectoryMemSize();
  *
  * @param offset    offset in uploaded memory (bytes)
  * @param length    Length of the data (bytes) to copy to the trajectory memory
- * @param data[in]  pointer to the trajectory data source
+ * @param data  pointer to the trajectory data source
  *
  * @return true   If data was copied
  * @return false  If data is too large
@@ -261,5 +316,13 @@ bool crtpCommanderHighLevelIsTrajectoryFinished();
  * @brief Query whether the drone is in at least one of the groups that match the given group mask.
  */
 bool crtpCommanderHighLevelMatchesGroupMask(uint8_t g);
+
+/**
+ * @brief Query the current state of the planner in high level control
+ *
+ * @return trajectory state enum defined in planner.h
+ */
+
+enum trajectory_state crtpCommanderHighLevelGetPlannerState();
 
 #endif /* CRTP_COMMANDER_HIGH_LEVEL_H_ */

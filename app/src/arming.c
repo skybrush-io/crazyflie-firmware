@@ -23,12 +23,12 @@
 
 #include "arming.h"
 #include "param.h"
-#include "system.h"
+#include "supervisor.h"
 
 static bool isInit = false;
 
 static struct {
-  paramVarId_t forceArm;
+  paramVarId_t stabilizerStop;
 } paramIds;
 
 void armingInit() {
@@ -37,9 +37,9 @@ void armingInit() {
   }
 
   /* Retrieve the IDs of the log variables and parameters that we will need */
-  paramIds.forceArm = paramGetVarId("system", "forceArm");
+  paramIds.stabilizerStop = paramGetVarId("stabilizer", "stop");
 
-  if (!PARAM_VARID_IS_VALID(paramIds.forceArm)) {
+  if (!PARAM_VARID_IS_VALID(paramIds.stabilizerStop)) {
     return;
   }
 
@@ -54,12 +54,12 @@ bool armingShouldArmAutomaticallyBeforeTakeoff(void) {
   return true;
 }
 
-void armAutomaticallyIfNeeded(void) {
-  if (!armingShouldArmAutomaticallyBeforeTakeoff() || systemIsArmed()) {
-    return;
+bool armAutomaticallyIfNeeded(void) {
+  if (!armingShouldArmAutomaticallyBeforeTakeoff() || supervisorIsArmed()) {
+    return true;
   }
 
-  systemSetArmed(true);
+  return supervisorRequestArming(true);
 }
 
 bool armingShouldDisarmAutomaticallyAfterLanding(void) {
@@ -71,6 +71,14 @@ bool armingShouldDisarmAutomaticallyAfterLanding(void) {
 }
 
 void armingForceDisarm() {
-  systemSetArmed(false);
-  paramSetInt(paramIds.forceArm, 0);
+  supervisorRequestArming(false);
+  armingBlockMotors();
+}
+
+void armingBlockMotors() {
+  paramSetInt(paramIds.stabilizerStop, 1);
+}
+
+void armingUnblockMotors() {
+  paramSetInt(paramIds.stabilizerStop, 0);
 }

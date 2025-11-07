@@ -29,6 +29,7 @@
  *
  * Academic citation would be appreciated.
  *
+ * \verbatim
  * BIBTEX ENTRIES:
       @INPROCEEDINGS{MuellerHamerUWB2015,
       author  = {Mueller, Mark W and Hamer, Michael and D'Andrea, Raffaello},
@@ -47,6 +48,7 @@
       pages={1--7},
       year={2016},
       publisher={American Institute of Aeronautics and Astronautics}}
+ * \endverbatim
  *
  * ============================================================================
  */
@@ -129,6 +131,8 @@ typedef struct {
   // PI --- facing negative X
   // 3 * PI / 2 --- facing negative Y
   float initialYaw;
+
+  float attitudeReversion;
 } kalmanCoreParams_t;
 
 /*  - Load default parameters */
@@ -147,7 +151,7 @@ void kalmanCoreUpdateWithBaro(kalmanCoreData_t *this, const kalmanCoreParams_t *
  *
  * The filter progresses as:
  *  - Predicting the current state forward */
-void kalmanCorePredict(kalmanCoreData_t *this, Axis3f *acc, Axis3f *gyro, const uint32_t nowMs, bool quadIsFlying);
+void kalmanCorePredict(kalmanCoreData_t *this, const kalmanCoreParams_t *params, Axis3f *acc, Axis3f *gyro, const uint32_t nowMs, bool quadIsFlying);
 
 void kalmanCoreAddProcessNoise(kalmanCoreData_t *this, const kalmanCoreParams_t *params, const uint32_t nowMs);
 

@@ -145,12 +145,12 @@ bool controllerINDITest(void)
 void controllerINDI(control_t *control, const setpoint_t *setpoint,
 	const sensorData_t *sensors,
 	const state_t *state,
-	const uint32_t tick)
+	const stabilizerStep_t stabilizerStep)
 {
 	control->controlMode = controlModeLegacy;
 
 	//The z_distance decoder adds a negative sign to the yaw command, the position decoder doesn't
-	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick)) {
+	if (RATE_DO_EXECUTE(ATTITUDE_RATE, stabilizerStep)) {
 		// Rate-controled YAW is moving YAW angle setpoint
 		if (setpoint->mode.yaw == modeVelocity) {
 			attitudeDesired.yaw += setpoint->attitudeRate.yaw * ATTITUDE_UPDATE_DT; //if line 140 (or the other setpoints) in crtp_commander_generic.c has the - sign remove add a -sign here to convert the crazyfly coords (ENU) to INDI  body coords (NED)
@@ -167,14 +167,14 @@ void controllerINDI(control_t *control, const setpoint_t *setpoint,
 		}
 	}
 
-	if (RATE_DO_EXECUTE(POSITION_RATE, tick) && !outerLoopActive) {
+	if (RATE_DO_EXECUTE(POSITION_RATE, stabilizerStep) && !outerLoopActive) {
 		positionController(&actuatorThrust, &attitudeDesired, setpoint, state);
 	}
 
 	/*
 	 * Skipping calls faster than ATTITUDE_RATE
 	 */
-	if (RATE_DO_EXECUTE(ATTITUDE_RATE, tick)) {
+	if (RATE_DO_EXECUTE(ATTITUDE_RATE, stabilizerStep)) {
 
 		// Call outer loop INDI (position controller)
 		if (outerLoopActive) {
@@ -225,11 +225,11 @@ void controllerINDI(control_t *control, const setpoint_t *setpoint,
 		// behavior if level mode is engaged later
 		if (setpoint->mode.roll == modeVelocity) {
 			rateDesired.roll = radians(setpoint->attitudeRate.roll);
-			attitudeControllerResetRollAttitudePID();
+			attitudeControllerResetRollAttitudePID(state->attitude.roll);
 		}
 		if (setpoint->mode.pitch == modeVelocity) {
 			rateDesired.pitch = radians(setpoint->attitudeRate.pitch);
-			attitudeControllerResetPitchAttitudePID();
+			attitudeControllerResetPitchAttitudePID(state->attitude.pitch);
 		}
 
 		/*
@@ -317,8 +317,8 @@ void controllerINDI(control_t *control, const setpoint_t *setpoint,
 		float_rates_zero(&indi.u_in);
 
 		if(indi.thrust == 0){
-			attitudeControllerResetAllPID();
-			positionControllerResetAllPID();
+			attitudeControllerResetAllPID(state->attitude.roll, state->attitude.pitch, state->attitude.yaw);
+			positionControllerResetAllPID(state->position.x, state->position.y, state->position.z);
 
 			// Reset the calculated YAW angle for rate control
 			attitudeDesired.yaw = -state->attitude.yaw;

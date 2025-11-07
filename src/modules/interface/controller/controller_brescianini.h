@@ -24,12 +24,14 @@
  *
  * Academic citation would be appreciated.
  *
+ * \verbatim
  * BIBTEX ENTRIES:
       @ARTICLE{BrescianiniNonlinearController2013,
                title={Nonlinear quadrocopter attitude control},
                author={Brescianini, Dario and Hehn, Markus and D'Andrea, Raffaello},
                year={2013},
                publisher={ETH Zurich}}
+ * \endverbatim
  *
  * ============================================================================
  */
@@ -44,4 +46,4 @@ void controllerBrescianini(control_t *control,
                         const setpoint_t *setpoint,
                         const sensorData_t *sensors,
                         const state_t *state,
-                        const uint32_t tick);
+                        const stabilizerStep_t stabilizerStep);

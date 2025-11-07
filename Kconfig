@@ -48,13 +48,6 @@ config DEBUG_PRINT_ON_UART1_BAUDRATE
       Set the baudrate of the debug output   
 
 
-config DEBUG_DECK_IGNORE_OW
-    bool "Do not enumerate OW based expansion decks"
-    default n
-    help
-      Do not enumerate decks discovered by OneWire memory. This might be useful
-      if one deck memory is very wrong. One could use the Crazyflie as a
-      passive onewire memory writer.
 
 endmenu
 
@@ -66,24 +59,53 @@ choice
 
 config PLATFORM_CF2
     bool "Build for CF2"
-    select SENSORS_BMI088_BMP388
+    select SENSORS_BMI088_BMP3XX
     select SENSORS_MPU9250_LPS25H
+
+config PLATFORM_CF21BL
+    bool "Build for CF2.1 brushless"
+    select SENSORS_BMI088_BMP3XX
+    select MOTORS_REQUIRE_ARMING
 
 config PLATFORM_BOLT
     bool "Build for Bolt"
-    select SENSORS_BMI088_BMP388
+    select SENSORS_BMI088_BMP3XX
     select SENSORS_BMI088_SPI
 
 config PLATFORM_TAG
     bool "Build for the roadrunner"
-    select SENSORS_BMI088_BMP388
+    select SENSORS_BMI088_BMP3XX
 
 config PLATFORM_FLAPPER
     bool "Build for Flapper Nimble+"
-    select SENSORS_BMI088_BMP388
+    select SENSORS_BMI088_BMP3XX
     select SENSORS_BMI088_SPI
 
 endchoice
+
+config MODIFY_CF_MASS
+    bool "Modify the default mass"
+    default n
+    help
+        Currently, the mass of the platform is only used by these non-default
+        controllers: Mellinger, Brescianini and Lee. If you are not using
+        one of these controllers, modifying the mass has no impact on the flight.
+    
+config MODIFIED_CF_MASS
+    int "Enter the total mass of the platform in milligrams"
+    depends on MODIFY_CF_MASS
+    default 29000 if PLATFORM_CF2
+    default 39300 if PLATFORM_CF21BL
+    default 29000
+
+config BOLT11_BRUSHED
+    bool "Bolt 1.1: Use brushed motor driver (HW mod required)"
+    depends on PLATFORM_BOLT
+    default n
+    help
+        0R resistors 0402 (or simple wire to short) should be mounted at 
+        R19, R22, R33, R34 and motor override signals will be disabled (high impedance).
+        Brushed motor should be connected + and - at motor connector (not S).
 
 endmenu
 
@@ -116,15 +138,15 @@ config SENSORS_MPU9250_LPS25H
     bool "Support for mpu9250 and lps25h sensors"
     default n
     help
-        Include support for the Bosch bmi088 inertial and bmp388
+        Include support for the Bosch bmi088 inertial and bmp3xx
         barometric sensors
 
-config SENSORS_BMI088_BMP388
-    bool "Support for bmi088 and bmp388 sensors"
+config SENSORS_BMI088_BMP3XX
+    bool "Support for bmi088 and bmp3xx sensors"
     default n
     select SENSORS_BMI088_I2C
     help
-        Include support for the Bosch bmi088 inertial and bmp388
+        Include support for the Bosch bmi088 inertial and bmp3xx
         barometric sensors
 
 config SENSORS_BOSCH
@@ -133,19 +155,19 @@ config SENSORS_BOSCH
 
 config SENSORS_IGNORE_BAROMETER_FAIL
     bool "Ignore failure from barometer"
-    depends on SENSORS_BMI088_BMP388
+    depends on SENSORS_BMI088_BMP3XX
     default n
 
 config SENSORS_BMI088_SPI
     bool "Support for SPI communincation with the bmi088 sensor"
-    depends on SENSORS_BMI088_BMP388
+    depends on SENSORS_BMI088_BMP3XX
     default n
     help
         Include support using SPI with the Bosch bmi088 inertial sensor
 
 config SENSORS_BMI088_I2C
     bool "Support for I2C communincation with the bmi088 sensor"
-    depends on SENSORS_BMI088_BMP388
+    depends on SENSORS_BMI088_BMP3XX
     default n
     help
         Include support using I2C with the Bosch bmi088 inertial sensor
@@ -189,6 +211,14 @@ config DECK_FORCE
     default "none"
     help
         A colon seperated list of custom drivers to force load or "none".
+
+config DECK_BACKEND_ONEWIRE
+    bool "Enable OneWire deck discovery backend"
+    default y
+    help
+        Enable the OneWire deck discovery backend that scans for decks with
+        OneWire memory chips. Disable this if you want to ignore all
+        OneWire-based deck discovery, which might be useful for debugging.
 
 source src/deck/drivers/src/Kconfig
 

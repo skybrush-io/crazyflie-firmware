@@ -42,6 +42,7 @@ We added the following:
 #include "position_controller.h"
 #include "controller_mellinger.h"
 #include "physicalConstants.h"
+#include "platform_defaults.h"
 
 // Global state variable used in the
 // firmware as the only instance and in bindings
@@ -115,7 +116,7 @@ bool controllerMellingerTest(controllerMellinger_t* self)
 void controllerMellinger(controllerMellinger_t* self, control_t *control, const setpoint_t *setpoint,
                                          const sensorData_t *sensors,
                                          const state_t *state,
-                                         const uint32_t tick)
+                                         const stabilizerStep_t stabilizerStep)
 {
   struct vec r_error;
   struct vec v_error;
@@ -131,7 +132,7 @@ void controllerMellinger(controllerMellinger_t* self, control_t *control, const 
 
   control->controlMode = controlModeLegacy;
 
-  if (!RATE_DO_EXECUTE(ATTITUDE_RATE, tick)) {
+  if (!RATE_DO_EXECUTE(ATTITUDE_RATE, stabilizerStep)) {
     return;
   }
 
@@ -328,9 +329,9 @@ bool controllerMellingerFirmwareTest(void)
 void controllerMellingerFirmware(control_t *control, const setpoint_t *setpoint,
                                          const sensorData_t *sensors,
                                          const state_t *state,
-                                         const uint32_t tick)
+                                         const stabilizerStep_t stabilizerStep)
 {
-  controllerMellinger(&g_self, control, setpoint, sensors, state, tick);
+  controllerMellinger(&g_self, control, setpoint, sensors, state, stabilizerStep);
 }
 
 
