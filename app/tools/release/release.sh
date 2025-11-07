@@ -42,7 +42,7 @@ done
 
 # Variants of the firmware to build
 if [ "x$VARIANTS" = x ]; then
-  VARIANTS=$(find "${APP_ROOT}/conf" -name '*.cfg' -exec basename {} .cfg \; | grep -v common | sort)
+  VARIANTS=$(find "${APP_ROOT}/conf" -name '*.cfg' -maxdepth 1 -exec basename {} .cfg \; | grep -v common | sort)
 fi
 
 # Compile radio firmware if needed
