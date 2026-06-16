@@ -1,4 +1,4 @@
-/**
+    /**
  * ,---------,       ____  _ __
  * |  ,-^-,  |      / __ )(_) /_______________ _____  ___
  * | (  O  ) |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
@@ -206,7 +206,7 @@
     #define HEALTH_BRUSHLESS_OFF_PERIOD_MSEC 1000
 #endif
 #ifndef HEALTH_BRUSHLESS_VARIANCE_START_MSEC
-    #define HEALTH_BRUSHLESS_VARIANCE_START_MSEC 1000
+    #define HEALTH_BRUSHLESS_VARIANCE_START_MSEC 1500
 #endif
 
 
@@ -214,6 +214,9 @@
 // variance of the accelerometer X+Y when the propeller is spinning.
 #ifndef HEALTH_PROPELLER_TEST_THRESHOLD
     #define HEALTH_PROPELLER_TEST_THRESHOLD  0.0f
+#endif
+#ifndef HEALTH_PROPELLER_TEST_THRESHOLD_LOW
+    #define HEALTH_PROPELLER_TEST_THRESHOLD_LOW  0.01f
 #endif
 
 // For safety, when the BigQuad deck is enabled, the user should
@@ -224,3 +227,39 @@
         #define CONFIG_MOTORS_DEFAULT_IDLE_THRUST 7000
     #endif
 #endif
+
+// Flow deck position constants
+// Distance of camera sensor of the flow deck,
+// with respect to center of mass, in meters.
+#ifndef FLOWDECK_POS_X
+    #define FLOWDECK_POS_X 0.0f
+#endif
+#ifndef FLOWDECK_POS_Y
+    #define FLOWDECK_POS_Y 0.0f
+#endif
+#ifndef FLOWDECK_POS_Z
+    #define FLOWDECK_POS_Z 0.0f
+#endif
+
+// Drag coefficients (in N*s/m)
+#ifndef DRAG_B_X
+    #define DRAG_B_X 0.0f
+#endif
+#ifndef DRAG_B_Y
+    #define DRAG_B_Y 0.0f
+#endif
+#ifndef DRAG_B_Z
+    #define DRAG_B_Z 0.0f
+#endif
+
+// Center of pressure offset relative to the the centre of mass, in body frame (in meters)
+#ifndef CENTER_OF_PRESSURE_X
+    #define CENTER_OF_PRESSURE_X 0.0f
+#endif
+#ifndef CENTER_OF_PRESSURE_Y
+    #define CENTER_OF_PRESSURE_Y 0.0f
+#endif
+#ifndef CENTER_OF_PRESSURE_Z
+    #define CENTER_OF_PRESSURE_Z 0.0f
+#endif
+
