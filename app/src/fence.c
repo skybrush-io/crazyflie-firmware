@@ -97,9 +97,9 @@ static void fenceTimer(xTimerHandle timer);
 static void fenceWorker(void* data);
 
 // Safety fence memory handling from the memory module
-static uint32_t handleMemGetSize(void) { return fenceMemSize(); }
-static bool handleMemRead(const uint32_t memAddr, const uint8_t readLen, uint8_t* buffer);
-static bool handleMemWrite(const uint32_t memAddr, const uint8_t writeLen, const uint8_t* buffer);
+static uint32_t handleMemGetSize(const uint8_t internal_id) { return fenceMemSize(); }
+static bool handleMemRead(const uint8_t internal_id, const uint32_t memAddr, const uint8_t readLen, uint8_t* buffer);
+static bool handleMemWrite(const uint8_t internal_id, const uint32_t memAddr, const uint8_t writeLen, const uint8_t* buffer);
 static const MemoryHandlerDef_t memDef = {
   .type = MEM_TYPE_FENCE,
   .getSize = handleMemGetSize,
@@ -274,6 +274,8 @@ static void startNewBreach() {
   }
 }
 
+#define ARG_UNUSED 0
+
 /**
  * Sets up a geofence from a description stored within the Crazyflie memory
  * subsystem.
@@ -281,7 +283,7 @@ static void startNewBreach() {
 static int setupFenceFromMemory(struct fenceLocationDescription* description) {
   struct fenceDefinition newFence;
   uint32_t offset, size;
-  
+
   ASSERT(description->fenceLocation == FENCE_LOCATION_MEM);
 
   offset = description->fenceIdentifier.mem.offset;
@@ -294,7 +296,7 @@ static int setupFenceFromMemory(struct fenceLocationDescription* description) {
   memset(&newFence, 0, sizeof(newFence));
 
   /* read the type of the fence first */
-  if (!handleMemRead(offset, sizeof(newFence.type), &newFence.type)) {
+  if (!handleMemRead(ARG_UNUSED, offset, sizeof(newFence.type), &newFence.type)) {
     return EIO;
   }
 
@@ -315,7 +317,7 @@ static int setupFenceFromMemory(struct fenceLocationDescription* description) {
         return EIO;
       }
 
-      if (!handleMemRead(offset, size, (uint8_t*) &newFence.parameters.axisAlignedBoundingBox)) {
+      if (!handleMemRead(ARG_UNUSED, offset, size, (uint8_t*) &newFence.parameters.axisAlignedBoundingBox)) {
         return EIO;
       }
       break;
@@ -329,6 +331,8 @@ static int setupFenceFromMemory(struct fenceLocationDescription* description) {
 
   return 0;
 }
+
+#undef ARG_UNUSED
 
 /**
  * Timer function that is called regularly (2 times every second by default).
@@ -352,7 +356,7 @@ static void fenceWorker(void* data) {
   }
 
   estimatorKalmanGetEstimatedPos(&pos);
-  
+
   if (isPointInsideFence(&pos)) {
     clearCurrentBreach();
   } else {
@@ -367,7 +371,7 @@ static void fenceWorker(void* data) {
   }
 }
 
-static bool handleMemRead(const uint32_t memAddr, const uint8_t readLen, uint8_t* buffer) {
+static bool handleMemRead(const uint8_t internal_id, const uint32_t memAddr, const uint8_t readLen, uint8_t* buffer) {
   bool result = false;
 
   if (memAddr + readLen <= sizeof(fenceMemory)) {
@@ -378,7 +382,7 @@ static bool handleMemRead(const uint32_t memAddr, const uint8_t readLen, uint8_t
   return result;
 }
 
-static bool handleMemWrite(const uint32_t memAddr, const uint8_t writeLen, const uint8_t* buffer) {
+static bool handleMemWrite(const uint8_t internal_id, const uint32_t memAddr, const uint8_t writeLen, const uint8_t* buffer) {
   bool result = false;
 
   if ((memAddr + writeLen) <= sizeof(fenceMemory)) {
