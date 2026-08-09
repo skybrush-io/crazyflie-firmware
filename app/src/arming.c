@@ -51,7 +51,7 @@ bool armAutomaticallyIfNeeded(void) {
 }
 
 bool armingShouldDisarmAutomaticallyAfterLanding(void) {
-#ifdef CONFIG_MOTORS_START_DISARMED
+#ifdef CONFIG_MOTORS_REQUIRE_ARMING
   return true;
 #else
   return false;
