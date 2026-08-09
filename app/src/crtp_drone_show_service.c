@@ -183,9 +183,6 @@ static void handleArmOrDisarmCommandPacket(CRTPPacket* pk) {
   /* there is now a dedicated CRTP packet for arming and disarming but we need
    * to keep this for backward compatibility purposes */
 
-  /* TODO(ntamas): it would be great to delegate this to the existing arm/disarm
-   * command handler */
-
   /* put the response in the packet and trim it */
   if (pk->size >= sizeof(struct data_arm_or_disarm) + 1) {
     bool shouldBeArmed = data.arm & 1;
