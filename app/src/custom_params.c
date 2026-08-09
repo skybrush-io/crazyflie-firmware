@@ -93,12 +93,6 @@ static const customParamTableEntry_t params[] = {
   { "pm", "criticalLowVoltage", 3.0 },
 #endif
 
-#ifdef CONFIG_MOTORS_REQUIRE_ARMING
-  /* We assume that drones requiring arming are brushless so they need an explicit
-   * PWM ratio for motor tests */
-  { "health", "propTestPWMRatio", 6553, TYPE_INT },
-#endif
-
 #ifdef CONFIG_SHOW_TDOA_LARGE_AREA
   { "tdoa3", "stddev", 0.8 },
 #endif
