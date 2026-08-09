@@ -22,24 +22,12 @@
 #include "autoconf.h"
 
 #include "arming.h"
-#include "param.h"
 #include "supervisor.h"
 
 static bool isInit = false;
 
-static struct {
-  paramVarId_t stabilizerStop;
-} paramIds;
-
 void armingInit() {
   if (isInit) {
-    return;
-  }
-
-  /* Retrieve the IDs of the log variables and parameters that we will need */
-  paramIds.stabilizerStop = paramGetVarId("stabilizer", "stop");
-
-  if (!PARAM_VARID_IS_VALID(paramIds.stabilizerStop)) {
     return;
   }
 
@@ -76,9 +64,9 @@ void armingForceDisarm() {
 }
 
 void armingBlockMotors() {
-  paramSetInt(paramIds.stabilizerStop, 1);
+  // paramSetInt(paramIds.stabilizerStop, 1);
 }
 
 void armingUnblockMotors() {
-  paramSetInt(paramIds.stabilizerStop, 0);
+  //paramSetInt(paramIds.stabilizerStop, 0);
 }
