@@ -18,6 +18,7 @@
  */
 
 #include "autoconf.h"
+
 #include "drone_show_utils.h"
 #include "motors.h"
 

@@ -37,7 +37,6 @@
 #include "param.h"
 #include "pm.h"
 #include "preflight.h"
-#include "pulse_processor.h"
 #include "sensors.h"
 #include "supervisor.h"
 #include "worker.h"

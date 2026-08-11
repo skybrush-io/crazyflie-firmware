@@ -22,6 +22,9 @@
 #ifndef __SKYBRUSH_FENCE_H__
 #define __SKYBRUSH_FENCE_H__
 
+#include <stdbool.h>
+#include <stdint.h>
+
 enum FenceAction_e {
   FENCE_ACTION_NONE = 0,
   FENCE_ACTION_STOP_MOTORS = 1,

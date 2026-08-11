@@ -36,9 +36,6 @@
 #include "system.h"
 #include "worker.h"
 
-#define DEBUG_MODULE "FENCE"
-#include "debug.h"
-
 /**
  * Time between consecutive fence breach checks, in milliseconds.
  */

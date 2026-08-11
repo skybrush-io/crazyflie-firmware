@@ -42,9 +42,6 @@
 #include "preflight.h"
 #include "supervisor.h"
 
-#define DEBUG_MODULE "SHOW"
-#include "debug.h"
-
 #define CONTROL_CH 0
 
 #define CMD_START  0
