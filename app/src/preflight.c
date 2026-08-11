@@ -28,6 +28,7 @@
 #include "timers.h"
 
 #include "crtp_commander_high_level.h"
+#include "drone_show_utils.h"
 #include "estimator_kalman.h"
 #include "light_program.h"
 #include "locodeck.h"
@@ -245,9 +246,8 @@ bool preflightTest() {
  */
 void preflightResetKalmanFilterToHome() {
   /* Let's be very careful here -- we should not reset the Kalman filter if
-   * any of the motors are running because we might be in the air. To save
-   * some time, we check motor 1 only, though */
-  if (motorsGetRatio(0) > 512) {
+   * any of the motors are running because we might be in the air. */
+  if (motorsIsAtLeastOneMotorRunning()) {
     DEBUG_PRINT("NOT resetting EKF: motors are running\n");
   } else if (homeCoordinate[2] <= -10000) {
     /* Nothing to do, this is okay; we haven't received our "real" home

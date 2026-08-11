@@ -7,3 +7,4 @@ obj-y += fence.o
 obj-y += gcs_light_effects.o
 obj-y += light_program.o
 obj-y += preflight.o
+obj-y += utils.o
