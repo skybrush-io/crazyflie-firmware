@@ -36,6 +36,7 @@ static uint8_t numHandlers = 0;
 
 // Parameter storage
 static uint32_t rgb888 = 0;
+static uint8_t highlightTrigger = 0;
 
 void ledDeckRegisterHandler(const ledDeckHandlerDef_t* handler) {
   ASSERT(handler != NULL);
@@ -60,6 +61,31 @@ static void onRgb888Changed(void) {
     }
   }
 }
+
+// Parameter callback - called when system.highlight is updated
+static void onHighlightChanged(void) {
+  if (highlightTrigger) {
+    highlightTrigger = 0; // Reset trigger
+
+    // Call all registered handlers
+    for (int i = 0; i < numHandlers; i++) {
+      if (handlers[i]->flash) {
+        handlers[i]->flash();
+      }
+    }
+  }
+}
+
+PARAM_GROUP_START(system)
+
+/**
+ * @brief Highlight quad
+ *
+ * Uses functionality available, such as LEDs to highlight a quad, useful for
+ * swarms.
+ */
+PARAM_ADD_CORE_WITH_CALLBACK(PARAM_UINT8, highlight, &highlightTrigger, onHighlightChanged)
+PARAM_GROUP_STOP(system)
 
 /**
  * Generic LED deck control parameters

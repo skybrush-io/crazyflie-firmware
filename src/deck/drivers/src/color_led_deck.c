@@ -120,6 +120,7 @@ static void colorLedDeckSetColor(const uint8_t *rgb888) {
 
 static const ledDeckHandlerDef_t colorLedDeckLedHandler = {
   .setColor = colorLedDeckSetColor,
+  .flash = NULL,  // No flash functionality implemented yet
 };
 
 

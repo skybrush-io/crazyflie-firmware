@@ -56,6 +56,15 @@ typedef struct {
    * @param rgb888 Array of 3 bytes: [R, G, B] each 0-255
    */
   void (*setColor)(const uint8_t *rgb888);
+
+  /**
+   * @brief Callback to temporarily flash the LED to attract attention.
+   *
+   * This function is called on the parameter thread so it should not initiate
+   * long-running tasks. Ideally it should only set a flag that is handled later by
+   * another task.
+   */
+  void (*flash)(void);
 } ledDeckHandlerDef_t;
 
 /**
