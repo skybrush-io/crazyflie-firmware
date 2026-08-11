@@ -1,7 +1,8 @@
 /*
  * Crazyflie on-board preflight check module.
  *
- * This file is part of the Skybrush compatibility layer for the Crazyflie firmware.
+ * This file is part of the Skybrush compatibility layer for the Crazyflie
+ * firmware.
  *
  * Copyright 2019-2022 CollMot Robotics Ltd.
  *
@@ -21,6 +22,9 @@
 
 #ifndef __PREFLIGHT_H__
 #define __PREFLIGHT_H__
+
+#include <stdbool.h>
+#include <stdint.h>
 
 /**
  * Enum describing the various preflight tests.
@@ -83,7 +87,7 @@ preflight_check_status_t getPreflightCheckStatus();
 
 /**
  * Returns the detailed result of a single preflight tests.
- * 
+ *
  * Use the symbolic constants from the preflight_check_t enum when calling this
  * function.
  */
@@ -101,7 +105,7 @@ preflight_check_result_t getPreflightCheckSummary();
 
 /**
  * Returns whether a single preflight check is failing.
- * 
+ *
  * Use the symbolic constants from the preflight_check_t enum when calling this
  * function.
  */
@@ -109,7 +113,7 @@ bool isPreflightCheckFailing(uint8_t index);
 
 /**
  * Returns whether a single preflight check is passing.
- * 
+ *
  * Use the symbolic constants from the preflight_check_t enum when calling this
  * function.
  */

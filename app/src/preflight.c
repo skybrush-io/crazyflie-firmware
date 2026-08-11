@@ -69,6 +69,11 @@
 #  define PREFLIGHT_MIN_LIGHT_PROGRAMS CONFIG_PREFLIGHT_MIN_LIGHT_PROGRAMS
 #endif
 
+#ifdef CONFIG_PREFLIGHT_ENABLE_HOME_POSITION_CHECK
+#  define PREFLIGHT_MAX_HOME_POSITION_DISTANCE_XY_CM CONFIG_PREFLIGHT_MAX_HOME_POSITION_DISTANCE_XY_CM
+#  define PREFLIGHT_MAX_HOME_POSITION_DISTANCE_Z_CM CONFIG_PREFLIGHT_MAX_HOME_POSITION_DISTANCE_Z_CM
+#endif
+
 #ifndef PREFLIGHT_CHECK_ACTIVE_MARKER_DECK
 #  define PREFLIGHT_CHECK_ACTIVE_MARKER_DECK 0
 #endif
@@ -99,6 +104,14 @@
 
 #ifndef PREFLIGHT_MIN_LIGHT_PROGRAMS
 #  define PREFLIGHT_MIN_LIGHT_PROGRAMS 0
+#endif
+
+#ifndef PREFLIGHT_MAX_HOME_POSITION_DISTANCE_XY_CM
+#  define PREFLIGHT_MAX_HOME_POSITION_DISTANCE_XY_CM 50
+#endif
+
+#ifndef PREFLIGHT_MAX_HOME_POSITION_DISTANCE_Z_CM
+#  define PREFLIGHT_MAX_HOME_POSITION_DISTANCE_Z_CM 50
 #endif
 
 #define PREFLIGHT_CHECK_INTERVAL_MSEC 500
@@ -358,9 +371,10 @@ static preflight_check_result_t testHomePosition() {
     requestKalmanFilterReset();
   }
 
-  /* TODO(ntamas): maybe use smaller tolerance with Lighthouse? */
-
-  PASS_IF_AND_ONLY_IF(dxy <= 0.5f && dz <= 0.5f);
+  PASS_IF_AND_ONLY_IF(
+      dxy <= PREFLIGHT_MAX_HOME_POSITION_DISTANCE_XY_CM / 100.0f &&
+      dz <= PREFLIGHT_MAX_HOME_POSITION_DISTANCE_Z_CM / 100.0f
+  );
 }
 
 /**
@@ -438,7 +452,7 @@ static preflight_check_result_t testKalmanFilter() {
     if (PREFLIGHT_MIN_LH_BS_COUNT > 0 && convergedAtLeastOnce && maxValue < 10 * KALMAN_VARIANCE_THRESHOLD) {
       continue;
     }
-    
+
     if ((maxValue - minValue) > KALMAN_VARIANCE_THRESHOLD) {
       /* Difference too large. If the trend is increasing, remember that so we
        * can trigger a reset later if needed */
@@ -604,7 +618,7 @@ static void preflightWorker(void* data) {
    * Conceptually, we go from simpler, low-level tests (such as battery
    * voltage or the state of the stabilizer) to high-level tests (such as
    * the positioning system or the uploaded trajectory).
-   * 
+   *
    * The order of the tests must also pass the order in the preflight_check_t
    * enum.
    */

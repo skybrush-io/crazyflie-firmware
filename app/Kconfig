@@ -82,6 +82,22 @@ config PREFLIGHT_MIN_ACTIVE_LH_BS_COUNT
         Minimum number of Lighthouse base stations from which the drone must be
         receiving light beams before takeoff.
 
+config PREFLIGHT_ENABLE_HOME_POSITION_CHECK
+    bool "Check the home position"
+    default y
+
+config PREFLIGHT_MAX_HOME_POSITION_DISTANCE_XY_CM
+    int "Maximum home position distance in XY plane, in centimeters"
+    depends on PREFLIGHT_ENABLE_HOME_POSITION_CHECK
+    default 50
+    range 0 200
+
+config PREFLIGHT_MAX_HOME_POSITION_DISTANCE_Z_CM
+    int "Maximum home position distance in Z axis, in centimeters"
+    depends on PREFLIGHT_ENABLE_HOME_POSITION_CHECK
+    default 50
+    range 0 200
+
 endmenu
 
 config SHOW_TAKEOFF_HEIGHT_CM
@@ -126,4 +142,3 @@ config SHOW_TDOA_LARGE_AREA
 endmenu
 
 endmenu
-
