@@ -31,12 +31,13 @@
 #include "crtp.h"
 #include "crtp_drone_show_service.h"
 #include "drone_show.h"
+#include "drone_show_utils.h"
 #include "estimator_kalman.h"
 #include "fence.h"
 #include "gcs_light_effects.h"
 #include "light_program.h"
 #include "log.h"
-#include "param.h"
+#include "motors.h"
 #include "pm.h"
 #include "preflight.h"
 #include "supervisor.h"
@@ -319,4 +320,10 @@ static void updatePacketWithStatusInformation(CRTPPacket* pk) {
     ((lastColor[2] >> 3) & 0x1f)
   );
   *((uint16_t*)(pk->data + 14)) = colorAsRGB565;
+
+  /* more status flags */
+  pk->data[16] = (
+    /* are the motors running? */
+    (motorsAreRunning() ? 1 : 0)
+  );
 }

@@ -21,7 +21,7 @@
 #include "drone_show_utils.h"
 #include "motors.h"
 
-bool motorsIsAtLeastOneMotorRunning(void)
+bool motorsAreRunning(void)
 {
     for (uint8_t i = 0; i < NBR_OF_MOTORS; i++) {
         if (motorsGetRatio(i) > 512) {

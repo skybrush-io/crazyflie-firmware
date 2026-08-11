@@ -27,6 +27,6 @@
 /**
  * Returns whether at least one motor is running.
  */
-bool motorsIsAtLeastOneMotorRunning(void);
+bool motorsAreRunning(void);
 
 #endif // __SKYBRUSH_ARMING_H__

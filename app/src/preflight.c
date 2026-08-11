@@ -247,7 +247,7 @@ bool preflightTest() {
 void preflightResetKalmanFilterToHome() {
   /* Let's be very careful here -- we should not reset the Kalman filter if
    * any of the motors are running because we might be in the air. */
-  if (motorsIsAtLeastOneMotorRunning()) {
+  if (motorsAreRunning()) {
     DEBUG_PRINT("NOT resetting EKF: motors are running\n");
   } else if (homeCoordinate[2] <= -10000) {
     /* Nothing to do, this is okay; we haven't received our "real" home
