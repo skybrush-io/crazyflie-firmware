@@ -280,7 +280,9 @@ static void updatePacketWithStatusInformation(CRTPPacket* pk) {
     /* is the drone _disarmed_? (backwards compatibility) */
     (!supervisorIsArmed() ? (1 << 5) : 0) |
     /* is the fence breached? */
-    (fenceIsBreached() ? (1 << 6) : 0)
+    (fenceIsBreached() ? (1 << 6) : 0) |
+    /* did the drone crash? */
+    (supervisorIsCrashed() ? (1 << 7) : 0)
   );
 
   /* preflight check status */
