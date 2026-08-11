@@ -22,6 +22,8 @@
 #ifndef __SKYBRUSH_ARMING_H__
 #define __SKYBRUSH_ARMING_H__
 
+#include <stdbool.h>
+
 /**
  * Initializes the arming module.
  */

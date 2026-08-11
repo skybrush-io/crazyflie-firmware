@@ -17,17 +17,32 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "FreeRTOS.h"   /* bool is defined there */
-
 #include "autoconf.h"
 
 #include "arming.h"
+#include "param.h"
 #include "supervisor.h"
 
 static bool isInit = false;
 
+static struct {
+  paramVarId_t motorPowerSetEnable;
+  paramVarId_t motorPowerSetM1;
+} paramIds;
+
 void armingInit() {
   if (isInit) {
+    return;
+  }
+
+  /* Retrieve the IDs of the parameters that we will need */
+  paramIds.motorPowerSetEnable = paramGetVarId("motorPowerSet", "enable");
+  paramIds.motorPowerSetM1 = paramGetVarId("motorPowerSet", "m1");
+
+  if (
+      !PARAM_VARID_IS_VALID(paramIds.motorPowerSetEnable) ||
+      !PARAM_VARID_IS_VALID(paramIds.motorPowerSetM1)
+  ) {
     return;
   }
 
@@ -64,9 +79,10 @@ void armingForceDisarm() {
 }
 
 void armingBlockMotors() {
-  // paramSetInt(paramIds.stabilizerStop, 1);
+  paramSetInt(paramIds.motorPowerSetM1, 0);
+  paramSetInt(paramIds.motorPowerSetEnable, 2);
 }
 
 void armingUnblockMotors() {
-  //paramSetInt(paramIds.stabilizerStop, 0);
+  paramSetInt(paramIds.motorPowerSetEnable, 0);
 }
