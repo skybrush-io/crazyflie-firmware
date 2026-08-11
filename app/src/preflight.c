@@ -38,7 +38,7 @@
 #include "preflight.h"
 #include "pulse_processor.h"
 #include "sensors.h"
-#include "system.h"
+#include "supervisor.h"
 #include "worker.h"
 
 #define DEBUG_MODULE "PREFLT"
@@ -582,6 +582,15 @@ static preflight_check_result_t testTrajectoriesAndLightsAreDefined() {
 }
 
 /**
+ * Preflight check that tests whether the internal supervisor is running and
+ * is in a state that allows takeoff.
+ */
+static preflight_check_result_t testSupervisor() {
+  FAIL_UNLESS(supervisorIsArmed() || supervisorCanArm());
+  PASS;
+}
+
+/**
  * Timer function that is called regularly (2 times every second by default).
  * This function executes the preflight checks and sets the corresponding log
  * variable appropriately.
@@ -617,7 +626,8 @@ static void preflightWorker(void* data) {
    * want to put them in the result variable, from right (LSB) to left (MSB).
    * Conceptually, we go from simpler, low-level tests (such as battery
    * voltage or the state of the stabilizer) to high-level tests (such as
-   * the positioning system or the uploaded trajectory).
+   * the positioning system or the uploaded trajectory), except where backward
+   * compatibility with earlier versions requires us to do otherwise.
    *
    * The order of the tests must also pass the order in the preflight_check_t
    * enum.
@@ -630,6 +640,7 @@ static void preflightWorker(void* data) {
     RUN_CHECK(positioning, testPositioningSystem());
     RUN_CHECK(home, testHomePosition());
     RUN_CHECK(trajectory, testTrajectoriesAndLightsAreDefined());
+    RUN_CHECK(internal, testSupervisor());
   }
 
 #undef CHECK_START
