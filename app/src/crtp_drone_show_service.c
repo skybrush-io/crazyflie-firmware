@@ -275,8 +275,8 @@ static void updatePacketWithStatusInformation(CRTPPacket* pk) {
     (droneShowIsEnabled() ? (1 << 2) : 0) |
     /* is the drone flying? */
     (supervisorIsFlying() ? (1 << 3) : 0) |
-    /* is the drone show in testing mode? */
-    (droneShowIsInTestingMode() ? (1 << 4) : 0) |
+    /* is the drone show in testing mode or is the drone locked? */
+    (droneShowIsInTestingMode() || supervisorIsLocked() ? (1 << 4) : 0) |
     /* is the drone _disarmed_? (backwards compatibility) */
     (!supervisorIsArmed() ? (1 << 5) : 0) |
     /* is the fence breached? */
