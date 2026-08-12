@@ -161,7 +161,7 @@ static const uint8_t blue[] = {0x00, 0x00, 0xFF};
 static const uint8_t white[] = WHITE;
 static const uint8_t part_black[] = BLACK;
 
-// Generic LED controller callback
+// Generic LED controller setColor callback
 static void ledring12SetColor(const uint8_t *rgb888) {
   // Build RGB888 value: 0x00RRGGBB (standard format)
   uint32_t color = ((uint32_t)rgb888[0] << 16) |
@@ -175,8 +175,12 @@ static void ledring12SetColor(const uint8_t *rgb888) {
   paramSetInt(effectParamId, 14);
 }
 
+// Generic LED controller flash callback
+static void ledring12Flash(void);
+
 static const ledDeckHandlerDef_t ledring12LedHandler = {
   .setColor = ledring12SetColor,
+  .flash = ledring12Flash,
 };
 
 /**************** Black (LEDs OFF) ***************/
@@ -1008,6 +1012,10 @@ static struct {
   uint8_t active;
 } lightSignal = { 0, 0, 0 };
 
+static void ledring12Flash(void) {
+  lightSignal.trigger = 1;
+}
+
 static void checkLightSignalTrigger(void)
 {
   if (lightSignal.trigger)
@@ -1259,17 +1267,6 @@ PARAM_ADD_CORE(PARAM_UINT32, fadeColor, &fadeColor)
 PARAM_ADD_CORE(PARAM_FLOAT, fadeTime, &fadeTime)
 
 PARAM_GROUP_STOP(ring)
-
-PARAM_GROUP_START(system)
-
-/**
- * @brief Highlight quad
- *
- * Uses functionality available, such as LEDs to highlight a quad, useful for
- * swarms.
- */
-PARAM_ADD_CORE(PARAM_UINT8, highlight, &lightSignal.trigger)
-PARAM_GROUP_STOP(system)
 
 static const DeckDriver ledring12_deck = {
   .vid = 0xBC,
