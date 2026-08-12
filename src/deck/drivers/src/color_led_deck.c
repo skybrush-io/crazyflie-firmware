@@ -86,13 +86,20 @@ static colorLedContext_t contexts[2] = {
 #define TEST_LED_POSITION     (1 << 1)  // Bit 1: LED position read failed
 #define TEST_I2C_ADDR_PIN     (1 << 2)  // Bit 2: I2C address pin test failed
 
+// Light signal overriding helper struct (to implement handling of system.highlight)
+static struct {
+  uint8_t trigger;
+  uint32_t triggeredAt;
+  uint8_t active;
+} lightSignal = { 0, 0, 0 };
+
 static void task(void* param);
 static bool pollThermalStatus(colorLedContext_t *ctx);
 static bool pollLedCurrent(colorLedContext_t *ctx);
 static bool verifyLedPosition(colorLedContext_t *ctx, uint8_t expectedPosition);
 static bool testI2cAddrPin(colorLedContext_t *ctx);
 
-// Generic LED controller callback - forwards to all initialized instances
+// Generic LED controller setColor callback - forwards to all initialized instances
 static void colorLedDeckSetColor(const uint8_t *rgb888) {
   // White extraction: W = min(R, G, B), then subtract from RGB
   uint8_t w = rgb888[0];
@@ -118,9 +125,14 @@ static void colorLedDeckSetColor(const uint8_t *rgb888) {
   }
 }
 
+// Generic LED controller flash callback
+static void colorLedDeckFlash(void) {
+  lightSignal.trigger = 1; // Set trigger for light signal
+}
+
 static const ledDeckHandlerDef_t colorLedDeckLedHandler = {
   .setColor = colorLedDeckSetColor,
-  .flash = NULL,  // No flash functionality implemented yet
+  .flash = colorLedDeckFlash,
 };
 
 
@@ -472,6 +484,27 @@ static bool testI2cAddrPin(colorLedContext_t *ctx) {
   return true;
 }
 
+static uint32_t getDesiredColor(colorLedContext_t *ctx) {
+  if (lightSignal.trigger) {
+    lightSignal.active = 1;
+    lightSignal.triggeredAt = xTaskGetTickCount();
+    lightSignal.trigger = 0;
+  }
+
+  if (lightSignal.active) {
+    uint32_t diffMsec = T2M(xTaskGetTickCount() - lightSignal.triggeredAt);
+    if (diffMsec >= 1500) {
+      lightSignal.active = 0;
+      lightSignal.triggeredAt = 0;
+    } else {
+      diffMsec = diffMsec % 300;
+      return (diffMsec <= 100) ? 0xFFFFFFFF : 0;
+    }
+  }
+
+  return ctx->wrgb8888;
+}
+
 static void task(void *param) {
   colorLedContext_t *ctx = (colorLedContext_t *)param;
   systemWaitStart();
@@ -504,9 +537,12 @@ static void task(void *param) {
         lastCurrentPoll = xTaskGetTickCount();
       }
 
+      // Get desired color based on the context and the state of the flash trigger
+      uint32_t desiredColor = getDesiredColor(ctx);
+
       // Send color updates when changed
-      if (ctx->currentWrgb8888 != ctx->wrgb8888) {
-        ctx->currentWrgb8888 = ctx->wrgb8888;
+      if (ctx->currentWrgb8888 != desiredColor) {
+        ctx->currentWrgb8888 = desiredColor;
 
         // Unpack to struct (format: 0xWWRRGGBB)
         wrgb_t input = {
