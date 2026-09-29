@@ -20,7 +20,7 @@
 #include "autoconf.h"
 
 #include "arming.h"
-#include "param.h"
+#include "param_logic.h"
 #include "supervisor.h"
 
 static bool isInit = false;
