@@ -984,7 +984,7 @@ static void updateLEDRing() {
     lastColor[1] = 32;
     lastColor[2] = 0;
     modulateColorWithBreathingPattern(lastColor, now);
-  } else {
+  } else if (isErrorState(state)) {
     /* Error color should be shown in this state */
     /* we are not controlling the LED ring in this state. Errors are handled by
      * the "siren" pattern */
@@ -993,6 +993,9 @@ static void updateLEDRing() {
     lastColor[1] = 0;
     lastColor[2] = 0;
     modulateColorWithFlashingPattern(lastColor, now);
+  } else {
+    /* LED is off in this state */
+    lastColor[0] = lastColor[1] = lastColor[2] = 0;
   }
 
   paramSetInt(paramIds.ledColor, lastColor[0] << 16 | lastColor[1] << 8 | lastColor[2]);
