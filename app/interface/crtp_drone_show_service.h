@@ -22,6 +22,8 @@
 #ifndef __CRTP_DRONE_SHOW_SERVICE_H__
 #define __CRTP_DRONE_SHOW_SERVICE_H__
 
+#include <stdbool.h>
+
 /* Public functions */
 void droneShowSrvInit(void);
 bool droneShowSrvTest(void);

@@ -1,6 +1,6 @@
 /*
  * Drone show execution related functions in the Skybrush compatibility layer
- * 
+ *
  * This file is part of the Skybrush compatibility layer for the Crazyflie firmware.
  *
  * Copyright 2019-2022 CollMot Robotics Ltd.
@@ -21,6 +21,9 @@
 
 #ifndef __SKYBRUSH_DRONE_SHOW_H__
 #define __SKYBRUSH_DRONE_SHOW_H__
+
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef enum {
   STATE_INITIALIZING = 0,
