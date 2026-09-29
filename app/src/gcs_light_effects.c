@@ -20,7 +20,6 @@
  */
 
 #include "gcs_light_effects.h"
-#include "drone_show.h"
 
 #include <errno.h>
 #include <string.h>
@@ -79,10 +78,6 @@ int gcsLightEffectTrigger(gcs_light_effect_type_t effect, const uint8_t* color) 
   if (color) {
     memcpy(currentColor, color, 3);
   }
-
-  // Effect changed so it might happen that the drone show module needs to take
-  // control of the LED ring
-  droneShowRequestLEDRingControlModeEvaluation();
 
   return 0;
 }

@@ -1,6 +1,6 @@
 /*
  * Drone show execution related functions in the Skybrush compatibility layer
- * 
+ *
  * This file is part of the Skybrush compatibility layer for the Crazyflie firmware.
  *
  * Copyright 2019-2022 CollMot Robotics Ltd.
@@ -150,16 +150,12 @@ static uint8_t waitCounter;
 static uint8_t lowBatteryCounter;
 
 static struct {
-  paramVarId_t ledColorRed;
-  paramVarId_t ledColorGreen;
-  paramVarId_t ledColorBlue;
-  paramVarId_t ledRingEffect;
+  paramVarId_t ledColor;
   paramVarId_t pmCriticalLowVoltage;
 } paramIds;
 
 static void droneShowTimer(xTimerHandle timer);
 
-static uint8_t desiredLEDEffectForState(show_state_t state);
 static float getSecondsSinceLastStateSwitch();
 static float getSecondsSinceStart();
 static float getSecondsSinceTakeoff();
@@ -197,10 +193,7 @@ void droneShowInit() {
   xTimerStart(timer, LOOP_INTERVAL_MSEC);
 
   /* Retrieve the IDs of the log variables and parameters that we will need */
-  paramIds.ledColorRed = paramGetVarId("ring", "solidRed");
-  paramIds.ledColorGreen = paramGetVarId("ring", "solidGreen");
-  paramIds.ledColorBlue = paramGetVarId("ring", "solidBlue");
-  paramIds.ledRingEffect = paramGetVarId("ring", "effect");
+  paramIds.ledColor = paramGetVarId("led_deck_ctrl", "rgb888");
   paramIds.pmCriticalLowVoltage = paramGetVarId("pm", "criticalLowVoltage");
 
   if (!PARAM_VARID_IS_VALID(paramIds.pmCriticalLowVoltage)) {
@@ -243,12 +236,6 @@ bool droneShowIsInTestingMode(void) {
   /* we are in testing mode if we were explicitly set to be in testing mode or
    * if a USB cable is plugged in and the drone couldn't fly anyway */
   return isTesting || !supervisorCanFly();
-}
-
-void droneShowRequestLEDRingControlModeEvaluation(void) {
-  if (PARAM_VARID_IS_VALID(paramIds.ledRingEffect)) {
-    paramSetInt(paramIds.ledRingEffect, desiredLEDEffectForState(state));
-  }
 }
 
 void droneShowStart(void) {
@@ -418,7 +405,7 @@ static void droneShowTimer(xTimerHandle timer) {
         /* show finished, let's land */
         setState(STATE_LANDING);
       } else if (commanderGetActivePriority() > COMMANDER_PRIORITY_HIGHLEVEL) {
-        /* someone sent a command to the drone that overrode the internal 
+        /* someone sent a command to the drone that overrode the internal
          * high-level commander, switch to manual control? */
         setState(STATE_MANUAL_CONTROL);
       }
@@ -510,7 +497,7 @@ static float getSecondsSinceStart() {
  * the drone within the show; negative if the drone does not have to take off
  * yet but we have a scheduled start time; minus infinity if we have no scheduled
  * start time yet.
- * 
+ *
  * Note that this function clamps the takeoff time of the drone such that it is
  * never earlier than the start of the show, even if we would need more time for
  * takeoff. This is to ensure that the drone never starts moving before the
@@ -567,26 +554,6 @@ static bool hasStartTimePassed() {
  */
 static bool hasTakeoffTimePassed() {
   return startTime > 0 && getSecondsSinceTakeoff() >= 0;
-}
-
-/**
- * Returns the index of the desired LED effect of the LED ring deck for the
- * given show state.
- */
-static uint8_t desiredLEDEffectForState(show_state_t state) {
-  if (areGcsLightEffectsActive()) {
-    return 7;     /* solid color */
-  } else if (shouldRunPreflightChecksInState(state)) {
-    return 7;     /* solid color */
-  } else if (shouldRunLightProgramInState(state)) {
-    return 7;     /* solid color */
-  } else if (shouldRunLandingLightInState(state)) {
-    return 7;     /* solid color */
-  } else if (isErrorState(state)) {
-    return 11;    /* siren */
-  } else {
-    return 0;     /* off */
-  }
 }
 
 /**
@@ -656,9 +623,6 @@ static bool onEnteredState(show_state_t state, show_state_t oldState) {
   /* Enable the preflight checks if needed */
   preflightSetEnabled(shouldRunPreflightChecksInState(state));
 
-  /* Update the effect of the LED ring if we have an LED ring */
-  droneShowRequestLEDRingControlModeEvaluation();
-
   /* Clear the "startTime" variable if we are on the ground and we are not
    * waiting for the takeoff time */
   if (isStateOnGround(state) && state != STATE_WAIT_FOR_PREFLIGHT_CHECK &&
@@ -682,7 +646,7 @@ static bool onEnteredState(show_state_t state, show_state_t oldState) {
     /* Arm the drone (in case we weren't armed yet -- although we should be,
      * since we do that five seconds before the takeoff) */
     armAutomaticallyIfNeeded();
-  
+
     /* Start the takeoff */
     crtpCommanderHighLevelTakeoffWithVelocity(
       SHOW_TAKEOFF_HEIGHT,
@@ -767,7 +731,7 @@ static bool onEnteredState(show_state_t state, show_state_t oldState) {
   if (state == STATE_LANDED) {
     preflightSetForcedToPass(false);
   }
-  
+
   /* Return whether the state switch was successful */
   return success;
 }
@@ -922,6 +886,17 @@ static bool shouldStartWithFailingPreflightChecks() {
 }
 
 /**
+ * Helper function that modulates a color with a "flashing" pattern.
+ */
+static void modulateColorWithFlashingPattern(uint8_t* color, uint64_t timestamp) {
+  if (timestamp % 1000000 <= 500000) {
+    color[0] = 0;
+    color[1] = 0;
+    color[2] = 0;
+  }
+}
+
+/**
  * Helper function that modulates a color based on an Apple-style "breathing"
  * light pattern.
  */
@@ -952,7 +927,6 @@ static void modulateColorWithBreathingPattern(uint8_t* color, uint64_t timestamp
 static void updateLEDRing() {
   uint64_t now;
   bool canStart;
-  bool updateLights = true;
   preflight_check_result_t preflightCheckSummary;
 
   if (areGcsLightEffectsActive()) {
@@ -1011,17 +985,17 @@ static void updateLEDRing() {
     lastColor[2] = 0;
     modulateColorWithBreathingPattern(lastColor, now);
   } else {
+    /* Error color should be shown in this state */
     /* we are not controlling the LED ring in this state. Errors are handled by
      * the "siren" pattern */
-    lastColor[0] = lastColor[1] = lastColor[2] = 0;
-    updateLights = false;
+    now = getUsecTimestampForLightPatterns();
+    lastColor[0] = 255;
+    lastColor[1] = 0;
+    lastColor[2] = 0;
+    modulateColorWithFlashingPattern(lastColor, now);
   }
 
-  if (updateLights) {
-    paramSetInt(paramIds.ledColorRed, lastColor[0]);
-    paramSetInt(paramIds.ledColorGreen, lastColor[1]);
-    paramSetInt(paramIds.ledColorBlue, lastColor[2]);
-  }
+  paramSetInt(paramIds.ledColor, lastColor[0] << 16 | lastColor[1] << 8 | lastColor[2]);
 }
 
 /**
