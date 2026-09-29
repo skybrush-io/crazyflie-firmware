@@ -67,11 +67,9 @@ static const char* stateMessages[NUM_STATES] = {
   "Performing show.",
   "Landing.",
   "Landed.",
-
   "Battery low, landing.",
   "Battery flat.",
-  "Unrecoverable error."
-
+  "Unrecoverable error.",
   "Manual control.",
   "Position hold."
 };
