@@ -233,9 +233,12 @@ bool droneShowIsProbablyAirborne(void) {
 }
 
 bool droneShowIsInTestingMode(void) {
-  /* we are in testing mode if we were explicitly set to be in testing mode or
-   * if a USB cable is plugged in and the drone couldn't fly anyway */
-  return isTesting || !supervisorCanFly();
+  /* we are in testing mode if we were explicitly set to be in testing mode. We used to
+   * check supervisorCanFly() here, but the intent was to check whether the USB cable
+   * is plugged in and it is not possible to get that information any more. Note that
+   * it is not enough to check whether the drone is charging because it could be
+   * charged wirelessly */
+  return isTesting;
 }
 
 void droneShowStart(void) {
