@@ -44,6 +44,7 @@
 #include "motors.h"
 #include "sensors.h"
 #include "pm.h"
+#include "power_distribution.h"
 #include "autoconf.h"
 
 #include "static_mem.h"
@@ -88,6 +89,7 @@ static uint8_t motorPass = 0;
 static uint16_t motorTestCount = 0;
 static uint8_t batteryPass = 0;
 static float batterySag = 0;
+static uint16_t motorRatios[NBR_OF_MOTORS];
 
 typedef enum { configureAcc, measureNoiseFloor, measureProp, testBattery, restartBatTest,
                evaluatePropResult, evaluateBatResult, testDone } TestState;
@@ -147,6 +149,14 @@ static bool evaluatePropTest(float low, float high, float value, uint8_t motor)
   return true;
 }
 
+static void healthStopMotors(void)
+{
+  for (int i = 0; i < NBR_OF_MOTORS; i++)
+  {
+    motorRatios[i] = powerDistributionStopRatio(i);
+  }
+}
+
 bool healthShallWeRunTest(void)
 {
 
@@ -179,7 +189,7 @@ void healthRunTests(sensorData_t *sensors)
     minSingleLoadedVoltage[MOTOR_M3] = minLoadedVoltage;
     minSingleLoadedVoltage[MOTOR_M4] = minLoadedVoltage;
     // Make sure motors are stopped first.
-    motorsStop();
+    healthStopMotors();
   }
   if (testState == measureNoiseFloor)
   {
@@ -229,11 +239,11 @@ void healthRunTests(sensorData_t *sensors)
 
     if (tick == 1 && healthTestSettings->onPeriodMsec > 0)
     {
-      motorsSetRatio(motorToTest, propTestPWMRatio > 0 ? propTestPWMRatio : healthTestSettings->onPeriodPWMRatioProp);
+      motorRatios[motorToTest] = propTestPWMRatio > 0 ? propTestPWMRatio : healthTestSettings->onPeriodPWMRatioProp;
     }
     else if (tick == healthTestSettings->onPeriodMsec)
     {
-      motorsSetRatio(motorToTest, 0);
+      motorRatios[motorToTest] = 0;
     }
     else if (tick >= healthTestSettings->onPeriodMsec + healthTestSettings->offPeriodMsec)
     {
@@ -260,10 +270,10 @@ void healthRunTests(sensorData_t *sensors)
     }
     if (tick == 1)
     {
-      motorsSetRatio(MOTOR_M1, batTestPWMRatio > 0 ? batTestPWMRatio : healthTestSettings->onPeriodPWMRatioBat);
-      motorsSetRatio(MOTOR_M2, batTestPWMRatio > 0 ? batTestPWMRatio : healthTestSettings->onPeriodPWMRatioBat);
-      motorsSetRatio(MOTOR_M3, batTestPWMRatio > 0 ? batTestPWMRatio : healthTestSettings->onPeriodPWMRatioBat);
-      motorsSetRatio(MOTOR_M4, batTestPWMRatio > 0 ? batTestPWMRatio : healthTestSettings->onPeriodPWMRatioBat);
+      motorRatios[MOTOR_M1] = batTestPWMRatio > 0 ? batTestPWMRatio : healthTestSettings->onPeriodPWMRatioBat;
+      motorRatios[MOTOR_M2] = batTestPWMRatio > 0 ? batTestPWMRatio : healthTestSettings->onPeriodPWMRatioBat;
+      motorRatios[MOTOR_M3] = batTestPWMRatio > 0 ? batTestPWMRatio : healthTestSettings->onPeriodPWMRatioBat;
+      motorRatios[MOTOR_M4] = batTestPWMRatio > 0 ? batTestPWMRatio : healthTestSettings->onPeriodPWMRatioBat;
     }
     else if (tick < 50)
     {
@@ -272,7 +282,7 @@ void healthRunTests(sensorData_t *sensors)
     }
     else if (tick == 50)
     {
-      motorsStop();
+      healthStopMotors();
       testState = evaluateBatResult;
     }
     tick++;
@@ -336,6 +346,13 @@ void healthRunTests(sensorData_t *sensors)
     motorTestCount++;
     testState = testDone;
     motorPass |= (1 << HEALTH_MOTOR_TEST_FINISHED_BIT);
+  }
+
+  // Set all motors every step, as the controller does in flight. The caller
+  // is responsible for sending them (DSHOT burst).
+  for (int i = 0; i < NBR_OF_MOTORS; i++)
+  {
+    motorsSetRatio(i, motorRatios[i]);
   }
 }
 
