@@ -379,11 +379,14 @@ static void droneShowTimer(xTimerHandle timer) {
     case STATE_WAIT_FOR_START_SIGNAL:
       if (getPreflightCheckSummary() != preflightResultPass) {
         setState(STATE_WAIT_FOR_PREFLIGHT_CHECK);
-      } else if (getSecondsSinceTakeoff() > -5) {
-        /* Arm the drone */
-        armAutomaticallyIfNeeded();
-      } else if (hasStartTimePassed()) {
-        setState(STATE_WAIT_FOR_TAKEOFF_TIME);
+      } else {
+        if (getSecondsSinceTakeoff() > -5) {
+          /* Arm the drone */
+          armAutomaticallyIfNeeded();
+        }
+        if (hasStartTimePassed()) {
+          setState(STATE_WAIT_FOR_TAKEOFF_TIME);
+        }
       }
       break;
 
